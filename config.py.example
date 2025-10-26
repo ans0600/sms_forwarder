@@ -39,6 +39,9 @@ POLL_INTERVAL = 10
 # Whether to delete SMS from device after forwarding to Telegram
 DELETE_AFTER_FORWARD = True
 
+# Web UI Settings
+WEB_PORT = 8080  # Port for web monitoring interface
+
 # Logging configuration
 LOG_LEVEL = 'INFO'  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
 LOG_FILE = 'sms_forwarder.log'  # Set to None to disable file logging

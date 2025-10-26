@@ -84,12 +84,15 @@ def main():
 
     # Create and start forwarder
     try:
+        web_port = getattr(config, 'WEB_PORT', 8080)  # Default to 8080 if not set
+
         forwarder = SMSForwarder(
             telegram_token=config.TELEGRAM_BOT_TOKEN,
             telegram_chat_id=config.TELEGRAM_CHAT_ID,
             devices=config.DEVICES,
             poll_interval=config.POLL_INTERVAL,
-            delete_after_forward=config.DELETE_AFTER_FORWARD
+            delete_after_forward=config.DELETE_AFTER_FORWARD,
+            web_port=web_port
         )
 
         forwarder.start()

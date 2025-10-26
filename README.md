@@ -12,6 +12,8 @@ A Python application that monitors Air 780EPV LTE modems for incoming SMS and ph
 - 🌍 **UCS2 Support**: Handles international SMS with UCS2 encoding
 - 🔒 **Auto-Delete**: Optional SMS deletion after forwarding
 - 📊 **Device Monitoring**: Signal strength and device status reporting
+- 🌐 **Web UI**: Simple web interface for monitoring device status and notification history
+- 💾 **SQLite Database**: Persistent storage of all notifications
 - 🐧 **Linux Service**: Systemd integration with auto-start and log rotation
 
 ## Project Structure
@@ -23,13 +25,18 @@ sms_forwarder/
 ├── sms_device_at.py           # AT command device handler
 ├── sms_forwarder_at.py        # Main forwarder logic with threading
 ├── telegram_notifier.py       # Telegram notification handler
+├── notification_db.py         # SQLite database handler
+├── web_server.py              # Flask web server
+├── templates/                 # Web UI templates
+│   └── index.html             # Main web interface
 ├── requirements.txt           # Python dependencies
 ├── sms-forwarder.service      # Systemd service file
 ├── install_service.sh         # Automatic service installation
 ├── .gitignore                 # Git ignore rules
 └── script/                    # Utility and test scripts
     ├── test_incoming_call.py  # Test incoming call detection
-    ├── read_single_sms.py     # Debug SMS reading
+    ├── test_creg.py           # Test network registration
+    ├── list_notifications.py  # View database contents
     └── ...
 ```
 
@@ -152,6 +159,57 @@ sudo journalctl -u sms-forwarder -f
 tail -f sms_forwarder.log
 ```
 
+## Web UI
+
+The application includes a simple web interface for monitoring device status and viewing notification history.
+
+### Accessing the Web UI
+
+Once the application is running, open your browser and navigate to:
+
+```
+http://localhost:8080
+```
+
+Or from another machine on the network:
+
+```
+http://<server-ip>:8080
+```
+
+### Features
+
+- **Device Status**: Real-time view of all configured devices
+  - Connection status
+  - Signal strength
+  - Network registration (home/roaming)
+  - Technology (GSM/LTE/HSPA+)
+  - Location Area Code (LAC) and Cell ID (CI)
+  - SMS storage usage
+
+- **Notification History**: Complete list of all notifications
+  - Timestamp
+  - Type (SMS or CALL)
+  - Device name
+  - Phone number
+  - Message content (for SMS)
+
+- **Statistics**: Summary of total notifications
+  - Total notifications
+  - SMS count
+  - Call count
+  - Last 24 hours activity
+
+### Configuration
+
+To change the web server port, edit `config.py`:
+
+```python
+WEB_PORT = 8080  # Change to your preferred port
+```
+
+**Note**: The web UI does not auto-refresh. Reload the page to see latest updates.
+
 ## Configuration
 
 All settings in `config.py`:
@@ -163,6 +221,7 @@ All settings in `config.py`:
 | `DEVICES` | List of device configurations | Required |
 | `POLL_INTERVAL` | SMS check interval (seconds) | 10 |
 | `DELETE_AFTER_FORWARD` | Delete SMS after forwarding | True |
+| `WEB_PORT` | Web UI port | 8080 |
 | `LOG_LEVEL` | Logging level | INFO |
 | `LOG_FILE` | Log file path | sms_forwarder.log |
 

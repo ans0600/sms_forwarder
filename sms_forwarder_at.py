@@ -12,6 +12,7 @@ from datetime import datetime
 from telegram_notifier import TelegramNotifier
 from sms_device_at import SMSDeviceAT
 from notification_db import NotificationDB
+from web_server import WebServer
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ class SMSForwarderAT:
 
     def __init__(self, telegram_token: str, telegram_chat_id: str,
                  devices: List[Dict], poll_interval: int = 10,
-                 delete_after_forward: bool = True):
+                 delete_after_forward: bool = True, web_port: int = 8080):
         """
         Initialize SMS forwarder with AT commands
 
@@ -32,6 +33,7 @@ class SMSForwarderAT:
             devices: List of device configurations
             poll_interval: Polling interval in seconds
             delete_after_forward: Delete SMS after forwarding
+            web_port: Port for web UI (default: 8080)
         """
         self.telegram = TelegramNotifier(telegram_token, telegram_chat_id)
         self.devices = []
@@ -39,6 +41,7 @@ class SMSForwarderAT:
         self.delete_after_forward = delete_after_forward
         self.running = False
         self.monitor_threads = []  # Threads for monitoring incoming calls
+        self.web_thread = None  # Thread for web server
 
         # Initialize notification database
         self.db = NotificationDB()
@@ -48,6 +51,9 @@ class SMSForwarderAT:
             device = SMSDeviceAT(dev_config['port'])
             device.device_name = dev_config['name']
             self.devices.append(device)
+
+        # Initialize web server
+        self.web_server = WebServer(self.db, self.devices, port=web_port)
 
     def connect_all_devices(self) -> Dict:
         """Connect to all configured devices"""
@@ -378,6 +384,15 @@ class SMSForwarderAT:
 
         # Start monitoring
         self.running = True
+
+        # Start web server in a separate thread
+        self.web_thread = threading.Thread(
+            target=self.web_server.run,
+            daemon=True,
+            name="WebServer"
+        )
+        self.web_thread.start()
+        logger.info("Started web server thread")
 
         # Start a monitor thread for each connected device
         # Each thread monitors both calls (100ms) and SMS (poll_interval)

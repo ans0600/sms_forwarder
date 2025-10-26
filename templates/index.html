@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMS Forwarder Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .timestamp {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .status-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .device-card {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .device-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .device-info {
+            display: grid;
+            gap: 8px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .status-connected {
+            color: #4caf50;
+        }
+
+        .status-disconnected {
+            color: #f44336;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 30px;
+            padding: 15px;
+            background: #f0f7ff;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976d2;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .messages-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .messages-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        thead {
+            background: #f5f5f5;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #ddd;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .type-sms {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .type-call {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .message-text {
+            max-width: 400px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .no-messages {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .refresh-note {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 SMS Forwarder Monitor</h1>
+            <div class="timestamp">Last updated: {{ current_time }}</div>
+        </header>
+
+        <div class="status-section">
+            <h2>Device Status</h2>
+            <div class="devices-grid">
+                {% for device in devices %}
+                <div class="device-card">
+                    <h3>{{ device.name }}</h3>
+                    <div class="device-info">
+                        <div class="info-row">
+                            <span class="info-label">Status:</span>
+                            <span class="info-value {% if device.status == 'Connected' %}status-connected{% else %}status-disconnected{% endif %}">
+                                {{ device.status }}
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Port:</span>
+                            <span class="info-value">{{ device.port }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Signal:</span>
+                            <span class="info-value">{{ device.signal }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">SMS Storage:</span>
+                            <span class="info-value">{{ device.sms_count }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Network:</span>
+                            <span class="info-value">{{ device.network }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Technology:</span>
+                            <span class="info-value">{{ device.technology }}</span>
+                        </div>
+                        {% if device.lac %}
+                        <div class="info-row">
+                            <span class="info-label">Location:</span>
+                            <span class="info-value">LAC: {{ device.lac }}, CI: {{ device.ci }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value">{{ stats.total or 0 }}</div>
+                    <div class="stat-label">Total Notifications</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ stats.total_sms or 0 }}</div>
+                    <div class="stat-label">SMS Messages</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ stats.total_calls or 0 }}</div>
+                    <div class="stat-label">Incoming Calls</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ stats.recent_24h or 0 }}</div>
+                    <div class="stat-label">Last 24 Hours</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="messages-section">
+            <h2>Notification History</h2>
+            {% if notifications %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>Device</th>
+                        <th>From</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for notif in notifications %}
+                    <tr>
+                        <td>{{ notif.timestamp_formatted }}</td>
+                        <td>
+                            <span class="type-badge {% if notif.notification_type == 'SMS' %}type-sms{% else %}type-call{% endif %}">
+                                {{ notif.notification_type }}
+                            </span>
+                        </td>
+                        <td>{{ notif.device_name }}</td>
+                        <td>{{ notif.phone_number }}</td>
+                        <td class="message-text">{{ notif.message or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-messages">
+                <p>No notifications yet</p>
+            </div>
+            {% endif %}
+
+            <div class="refresh-note">
+                Refresh the page to see latest updates
+            </div>
+        </div>
+    </div>
+</body>
+</html>
