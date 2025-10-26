@@ -120,6 +120,68 @@ class SMSDeviceAT:
             logger.error(f"Error getting signal strength: {e}")
             return None
 
+    def get_network_registration(self) -> Optional[Dict]:
+        """
+        Get network registration information using AT+CREG? command
+
+        Returns:
+            Dict with network registration info or None if failed
+        """
+        try:
+            response = self.send_command('AT+CREG?', wait_time=0.5)
+
+            # Response format: +CREG: <n>,<stat>[,<lac>,<ci>,<act>]
+            match = re.search(r'\+CREG:\s*(\d+),(\d+)(?:,"([^"]+)","([^"]+)",(\d+))?', response)
+            if match:
+                n = int(match.group(1))
+                stat = int(match.group(2))
+                lac = match.group(3) if match.group(3) else None
+                ci = match.group(4) if match.group(4) else None
+                act = int(match.group(5)) if match.group(5) else None
+
+                # Status mapping
+                stat_map = {
+                    0: 'Not registered',
+                    1: 'Registered (home)',
+                    2: 'Searching',
+                    3: 'Registration denied',
+                    4: 'Unknown',
+                    5: 'Registered (roaming)',
+                    6: 'Registered (home, SMS only)',
+                    7: 'Registered (roaming, SMS only)',
+                    8: 'Emergency only',
+                    9: 'Registered (home, CSFB not preferred)',
+                    10: 'Registered (roaming, CSFB not preferred)',
+                    11: 'Emergency only'
+                }
+
+                # Access technology mapping
+                act_map = {
+                    0: 'GSM',
+                    1: 'GSM Compact',
+                    2: 'UTRAN',
+                    3: 'GSM w/EGPRS',
+                    4: 'UTRAN w/HSDPA',
+                    5: 'UTRAN w/HSUPA',
+                    6: 'UTRAN w/HSDPA and HSUPA',
+                    7: 'E-UTRAN (LTE)',
+                    8: 'UTRAN HSPA+/EC-GSM-IoT'
+                }
+
+                return {
+                    'stat': stat,
+                    'stat_str': stat_map.get(stat, f'Unknown ({stat})'),
+                    'lac': lac,
+                    'ci': ci,
+                    'act': act,
+                    'act_str': act_map.get(act, f'Unknown ({act})') if act is not None else None
+                }
+
+            return None
+        except Exception as e:
+            logger.error(f"Error getting network registration: {e}")
+            return None
+
     def check_incoming_call(self) -> Optional[Dict]:
         """
         Check for incoming call by reading serial buffer for RING unsolicited result code

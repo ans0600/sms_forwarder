@@ -70,11 +70,15 @@ class SMSForwarderAT:
                 # Get signal strength
                 signal = device.get_signal_strength()
 
+                # Get network registration info
+                network_reg = device.get_network_registration()
+
                 device_data = {
                     'name': device.device_name,
                     'port': device.port,
                     'sms_count': f"{used}/{total}",
-                    'signal': signal if signal is not None else 'N/A'
+                    'signal': signal if signal is not None else 'N/A',
+                    'network_reg': network_reg
                 }
 
                 results['connected'].append(device_data)
@@ -83,6 +87,8 @@ class SMSForwarderAT:
                 logger.info(f"Connected to {device.device_name} on {device.port} (AT)")
                 logger.info(f"SMS count: {used}/{total}")
                 logger.info(f"Signal strength: {signal}%" if signal is not None else "Signal strength: N/A")
+                if network_reg:
+                    logger.info(f"Network: {network_reg['stat_str']}, Technology: {network_reg['act_str']}")
 
         return results
 
@@ -204,17 +210,34 @@ class SMSForwarderAT:
 
         logger.info(f"Monitor thread stopped for {device.device_name}")
 
-    def send_startup_notification(self, connection_results: Dict):
-        """Send startup notification to Telegram"""
+    def format_status_message(self, connection_results: Dict, is_startup: bool = False) -> str:
+        """
+        Format status message for Telegram
+
+        Args:
+            connection_results: Device connection results
+            is_startup: Whether this is startup message (vs periodic update)
+        """
         connected_section = ""
         if connection_results['connected']:
             for dev in connection_results['connected']:
                 signal_str = f"{dev['signal']}%" if isinstance(dev['signal'], int) else dev['signal']
+
+                # Format network registration info
+                network_info = ""
+                if dev.get('network_reg'):
+                    reg = dev['network_reg']
+                    network_info = f"\n  • Network: {reg['stat_str']}"
+                    if reg['act_str']:
+                        network_info += f"\n  • Technology: {reg['act_str']}"
+                    if reg['lac']:
+                        network_info += f"\n  • LAC: {reg['lac']}, CI: {reg['ci']}"
+
                 connected_section += f"""
 <b>✅ {dev['name']}</b>
   • Port: {dev['port']}
   • Signal: {signal_str}
-  • SMS Storage: {dev['sms_count']}
+  • SMS Storage: {dev['sms_count']}{network_info}
 """
 
         failed_section = ""
@@ -233,18 +256,38 @@ class SMSForwarderAT:
         else:
             status = "❌ No devices connected"
 
-        message = f"""🚀 <b>SMS Forwarder Started (AT Mode)</b>
+        if is_startup:
+            title = "🚀 <b>SMS Forwarder Started</b>"
+            footer = "<b>✅ Monitoring for incoming SMS and calls...</b>"
+        else:
+            import datetime
+            now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            title = f"📊 <b>Status Update</b>\n<i>{now}</i>"
+            footer = ""
+
+        message = f"""{title}
 
 <b>Configuration:</b>
-  • Method: Direct AT Commands (No Gammu)
   • Poll Interval: {self.poll_interval} seconds
   • Delete After Forward: {'Yes' if self.delete_after_forward else 'No'}
 
 <b>Status:</b> {status}
-{connected_section}{failed_section}
-<b>✅ Monitoring for incoming SMS and calls...</b>"""
+{connected_section}{failed_section}{footer}"""
 
+        return message
+
+    def send_startup_notification(self, connection_results: Dict):
+        """Send startup notification to Telegram"""
+        message = self.format_status_message(connection_results, is_startup=True)
         self.telegram.send_message(message)
+
+    def send_status_update(self):
+        """Send periodic status update to Telegram"""
+        # Re-collect device information
+        connection_results = self.connect_all_devices()
+        message = self.format_status_message(connection_results, is_startup=False)
+        self.telegram.send_message(message)
+        logger.info("Sent periodic status update")
 
     def send_shutdown_notification(self):
         """Send shutdown notification to Telegram"""
@@ -288,10 +331,20 @@ class SMSForwarderAT:
                 self.monitor_threads.append(thread)
                 logger.info(f"Started monitor thread for {device.device_name}")
 
-        # Main thread just waits for shutdown signal
+        # Main thread handles periodic status updates and waits for shutdown
         try:
+            last_status_update = time.time()
+            status_update_interval = 3 * 60 * 60  # 3 hours in seconds
+
             while self.running:
                 time.sleep(1)
+
+                # Check if it's time for periodic status update
+                if time.time() - last_status_update >= status_update_interval:
+                    logger.info("Sending periodic status update (3 hour interval)")
+                    self.send_status_update()
+                    last_status_update = time.time()
+
         except KeyboardInterrupt:
             logger.info("Received shutdown signal (Ctrl+C)")
         except Exception as e:
