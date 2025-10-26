@@ -1,0 +1,45 @@
+"""
+Configuration file for SMS Forwarder
+Copy this file to config.py and update with your settings
+"""
+
+import os
+from typing import List, Dict
+
+
+# Telegram Configuration
+# Get your bot token from @BotFather on Telegram
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', 'YOUR_TELEGRAM_BOT_TOKEN')
+
+# Get your chat ID by messaging @userinfobot on Telegram
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', 'YOUR_TELEGRAM_CHAT_ID')
+
+
+# Device Configuration for Air 780EPV devices
+# Air 780EPV creates 3 serial ports per device:
+#   - Port 0 (ttyACM0, ttyACM3, ...): AT command interface (use this for SMS)
+#   - Port 1 (ttyACM1, ttyACM4, ...): PPP/Modem interface
+#   - Port 2 (ttyACM2, ttyACM5, ...): Debug/logging interface
+DEVICES: List[Dict[str, str]] = [
+    {
+        'name': 'Air780EPV-1',
+        'port': '/dev/ttyACM0'  # First device AT port
+    },
+    {
+        'name': 'Air780EPV-2',
+        'port': '/dev/ttyACM3'  # Second device AT port (when connected)
+    }
+]
+
+
+# Application Settings
+# How often to check for new SMS (in seconds)
+POLL_INTERVAL = 10
+
+# Whether to delete SMS from device after forwarding to Telegram
+DELETE_AFTER_FORWARD = True
+
+# Logging configuration
+LOG_LEVEL = 'INFO'  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOG_FILE = 'sms_forwarder.log'  # Set to None to disable file logging
+LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

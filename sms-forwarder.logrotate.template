@@ -1,0 +1,12 @@
+/path/to/sms_forwarder/sms_forwarder.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 YOUR_USERNAME dialout
+    postrotate
+        systemctl reload sms-forwarder.service > /dev/null 2>&1 || true
+    endscript
+}

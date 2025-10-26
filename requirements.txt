@@ -1,0 +1,11 @@
+# SMS Forwarder Requirements
+
+# Serial port communication
+pyserial>=3.5
+
+# UCS2/PDU SMS decoding
+smspdudecoder>=2.2.0
+
+# Telegram API
+requests>=2.31.0
+urllib3>=2.0.0

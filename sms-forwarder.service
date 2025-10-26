@@ -1,0 +1,29 @@
+[Unit]
+Description=SMS Forwarder for Air 780EPV Devices
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+Group=dialout
+WorkingDirectory=/path/to/sms_forwarder
+ExecStart=/usr/bin/python3 /path/to/sms_forwarder/main.py
+Restart=always
+RestartSec=10
+
+# Logging
+# Python app handles its own logging to file
+# Systemd logs go to journal only
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target
