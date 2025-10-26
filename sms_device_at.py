@@ -124,60 +124,84 @@ class SMSDeviceAT:
         """
         Get network registration information using AT+CREG? command
 
+        Temporarily sets AT+CREG=2 to get full info, then resets to AT+CREG=0
+        to avoid unwanted URCs
+
+        Response formats:
+        - n=0 or 1: +CREG: <n>,<stat>
+        - n=2: +CREG: <n>,<stat>,<lac>,<ci>,<act>
+
         Returns:
             Dict with network registration info or None if failed
         """
         try:
+            # Set to mode 2 to get full info (lac, ci, act)
+            self.send_command('AT+CREG=2', wait_time=0.3)
+
+            # Query registration status
             response = self.send_command('AT+CREG?', wait_time=0.5)
 
-            # Response format: +CREG: <n>,<stat>[,<lac>,<ci>,<act>]
-            match = re.search(r'\+CREG:\s*(\d+),(\d+)(?:,"([^"]+)","([^"]+)",(\d+))?', response)
+            # Reset to mode 0 to disable URCs
+            self.send_command('AT+CREG=0', wait_time=0.3)
+
+            # Try to match full format with lac, ci, act (n=2)
+            match = re.search(r'\+CREG:\s*(\d+),(\d+),"([^"]+)","([^"]+)",(\d+)', response)
             if match:
+                # Full format response
                 n = int(match.group(1))
                 stat = int(match.group(2))
-                lac = match.group(3) if match.group(3) else None
-                ci = match.group(4) if match.group(4) else None
-                act = int(match.group(5)) if match.group(5) else None
+                lac = match.group(3)
+                ci = match.group(4)
+                act = int(match.group(5))
+            else:
+                # Try to match simple format (n=0 or 1)
+                match = re.search(r'\+CREG:\s*(\d+),(\d+)', response)
+                if match:
+                    n = int(match.group(1))
+                    stat = int(match.group(2))
+                    lac = None
+                    ci = None
+                    act = None
+                else:
+                    return None
 
-                # Status mapping
-                stat_map = {
-                    0: 'Not registered',
-                    1: 'Registered (home)',
-                    2: 'Searching',
-                    3: 'Registration denied',
-                    4: 'Unknown',
-                    5: 'Registered (roaming)',
-                    6: 'Registered (home, SMS only)',
-                    7: 'Registered (roaming, SMS only)',
-                    8: 'Emergency only',
-                    9: 'Registered (home, CSFB not preferred)',
-                    10: 'Registered (roaming, CSFB not preferred)',
-                    11: 'Emergency only'
-                }
+            # Status mapping
+            stat_map = {
+                0: 'Not registered',
+                1: 'Registered (home)',
+                2: 'Searching',
+                3: 'Registration denied',
+                4: 'Unknown',
+                5: 'Registered (roaming)',
+                6: 'Registered (home, SMS only)',
+                7: 'Registered (roaming, SMS only)',
+                8: 'Emergency only',
+                9: 'Registered (home, CSFB not preferred)',
+                10: 'Registered (roaming, CSFB not preferred)',
+                11: 'Emergency only'
+            }
 
-                # Access technology mapping
-                act_map = {
-                    0: 'GSM',
-                    1: 'GSM Compact',
-                    2: 'UTRAN',
-                    3: 'GSM w/EGPRS',
-                    4: 'UTRAN w/HSDPA',
-                    5: 'UTRAN w/HSUPA',
-                    6: 'UTRAN w/HSDPA and HSUPA',
-                    7: 'E-UTRAN (LTE)',
-                    8: 'UTRAN HSPA+/EC-GSM-IoT'
-                }
+            # Access technology mapping
+            act_map = {
+                0: 'GSM',
+                1: 'GSM Compact',
+                2: 'UTRAN',
+                3: 'GSM w/EGPRS',
+                4: 'UTRAN w/HSDPA',
+                5: 'UTRAN w/HSUPA',
+                6: 'UTRAN w/HSDPA and HSUPA',
+                7: 'E-UTRAN (LTE)',
+                8: 'UTRAN HSPA+/EC-GSM-IoT'
+            }
 
-                return {
-                    'stat': stat,
-                    'stat_str': stat_map.get(stat, f'Unknown ({stat})'),
-                    'lac': lac,
-                    'ci': ci,
-                    'act': act,
-                    'act_str': act_map.get(act, f'Unknown ({act})') if act is not None else None
-                }
-
-            return None
+            return {
+                'stat': stat,
+                'stat_str': stat_map.get(stat, f'Unknown ({stat})'),
+                'lac': lac,
+                'ci': ci,
+                'act': act,
+                'act_str': act_map.get(act, f'Unknown ({act})') if act is not None else None
+            }
         except Exception as e:
             logger.error(f"Error getting network registration: {e}")
             return None

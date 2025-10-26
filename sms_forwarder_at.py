@@ -302,8 +302,51 @@ class SMSForwarderAT:
 
     def send_status_update(self):
         """Send periodic status update to Telegram"""
-        # Re-collect device information
-        connection_results = self.connect_all_devices()
+        # Collect device information from already-connected devices
+        connection_results = {
+            'connected': [],
+            'failed': [],
+            'device_info': {}
+        }
+
+        for device in self.devices:
+            if device.ser and device.ser.is_open:
+                try:
+                    # Get SMS count
+                    count_info = device.get_sms_count("ME")
+                    used = count_info['used'] if count_info else 0
+                    total = count_info['total'] if count_info else 0
+
+                    # Get signal strength
+                    signal = device.get_signal_strength()
+
+                    # Get network registration info
+                    network_reg = device.get_network_registration()
+
+                    device_data = {
+                        'name': device.device_name,
+                        'port': device.port,
+                        'sms_count': f"{used}/{total}",
+                        'signal': signal if signal is not None else 'N/A',
+                        'network_reg': network_reg
+                    }
+
+                    connection_results['connected'].append(device_data)
+                    connection_results['device_info'][device.device_name] = device_data
+                except Exception as e:
+                    logger.error(f"Error getting status for {device.device_name}: {e}")
+                    connection_results['failed'].append({
+                        'name': device.device_name,
+                        'port': device.port,
+                        'reason': f'Error: {str(e)}'
+                    })
+            else:
+                connection_results['failed'].append({
+                    'name': device.device_name,
+                    'port': device.port,
+                    'reason': 'Device disconnected'
+                })
+
         message = self.format_status_message(connection_results, is_startup=False)
         self.telegram.send_message(message)
         logger.info("Sent periodic status update")
