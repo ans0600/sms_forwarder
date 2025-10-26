@@ -36,6 +36,9 @@ ENV/
 *.log
 sms_forwarder.log*
 
+# Database and data files
+data/
+
 # IDE
 .vscode/
 .idea/

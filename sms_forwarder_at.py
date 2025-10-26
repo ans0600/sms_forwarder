@@ -11,6 +11,7 @@ from datetime import datetime
 
 from telegram_notifier import TelegramNotifier
 from sms_device_at import SMSDeviceAT
+from notification_db import NotificationDB
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,9 @@ class SMSForwarderAT:
         self.delete_after_forward = delete_after_forward
         self.running = False
         self.monitor_threads = []  # Threads for monitoring incoming calls
+
+        # Initialize notification database
+        self.db = NotificationDB()
 
         # Initialize AT command devices
         for dev_config in devices:
@@ -132,6 +136,14 @@ class SMSForwarderAT:
                     if self.telegram.send_message(telegram_message):
                         logger.info(f"Forwarded SMS from {sms['number']} via {device.device_name}")
 
+                        # Log to database
+                        self.db.log_sms(
+                            device_name=device.device_name,
+                            phone_number=sms['number'],
+                            message=sms['text'],
+                            timestamp=sms['date']
+                        )
+
                         # Delete SMS if configured
                         if self.delete_after_forward:
                             if device.delete_sms_at(sms['index'], sms['memory']):
@@ -164,6 +176,13 @@ class SMSForwarderAT:
             success = self.telegram.send_message(message)
             if success:
                 logger.info(f"Sent call notification for {call_info['number']} from {device.device_name}")
+
+                # Log to database
+                self.db.log_call(
+                    device_name=device.device_name,
+                    phone_number=call_info['number'],
+                    timestamp=call_info['timestamp']
+                )
             else:
                 logger.warning(f"Failed to send call notification to Telegram")
 
@@ -364,6 +383,9 @@ class SMSForwarderAT:
 
         # Send shutdown notification
         self.send_shutdown_notification()
+
+        # Close database connection
+        self.db.close()
 
         # Disconnect devices
         self.disconnect_all_devices()
