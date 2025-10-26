@@ -43,7 +43,7 @@
 
         .status-section {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
@@ -51,50 +51,59 @@
 
         .status-section h2 {
             color: #333;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #eee;
+            font-size: 18px;
         }
 
         .devices-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
         }
 
         .device-card {
             background: #f9f9f9;
             border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 15px;
+            border-radius: 4px;
+            padding: 10px;
         }
 
         .device-card h3 {
             color: #333;
-            margin-bottom: 10px;
-            font-size: 18px;
+            margin-bottom: 8px;
+            font-size: 16px;
         }
 
         .device-info {
             display: grid;
-            gap: 8px;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 12px;
+            font-size: 13px;
         }
 
         .info-row {
             display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
+            flex-direction: column;
+            padding: 2px 0;
         }
 
         .info-label {
             color: #666;
             font-weight: 500;
+            font-size: 11px;
         }
 
         .info-value {
             color: #333;
             font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .info-row.full-width {
+            grid-column: 1 / -1;
         }
 
         .status-connected {
@@ -107,11 +116,11 @@
 
         .stats-bar {
             display: flex;
-            gap: 30px;
-            padding: 15px;
+            gap: 20px;
+            padding: 10px 15px;
             background: #f0f7ff;
-            border-radius: 6px;
-            margin-top: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
         }
 
         .stat-item {
@@ -119,13 +128,13 @@
         }
 
         .stat-value {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             color: #1976d2;
         }
 
         .stat-label {
-            font-size: 12px;
+            font-size: 11px;
             color: #666;
             text-transform: uppercase;
         }
@@ -253,7 +262,7 @@
                             <span class="info-value">{{ device.technology }}</span>
                         </div>
                         {% if device.lac %}
-                        <div class="info-row">
+                        <div class="info-row full-width">
                             <span class="info-label">Location:</span>
                             <span class="info-value">LAC: {{ device.lac }}, CI: {{ device.ci }}</span>
                         </div>
